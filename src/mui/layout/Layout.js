@@ -11,6 +11,10 @@ import AppBar from './AppBar';
 import Notification from './Notification';
 import Menu from './Menu';
 import defaultTheme from '../defaultTheme';
+import {
+    toggleSidebar as toggleSidebarAction,
+    setSidebarVisibility as setSidebarVisibilityAction,
+} from '../../actions';
 
 injectTapEventPlugin();
 
@@ -48,25 +52,25 @@ const styles = {
 const prefixedStyles = {};
 
 class Layout extends Component {
-    state = {
-        sidebarOpen: true,
-    };
-
     componentWillMount() {
-        this.setState({ sidebarOpen: this.props.width !== 1 });
-    }
-
-    setSidebarVisibility = (open) => {
-        this.setState({ sidebarOpen: open });
-    }
-
-    toggleSidebar = () => {
-        this.setState({ sidebarOpen: !this.state.sidebarOpen });
+        if (this.props.width !== 1) {
+            this.props.setSidebarVisibility(true);
+        }
     }
 
     render() {
-        const { isLoading, children, route, title, theme, logout, width } = this.props;
-        const { sidebarOpen } = this.state;
+        const {
+            children,
+            isLoading,
+            logout,
+            route,
+            setSidebarVisibility,
+            sidebarOpen,
+            theme,
+            title,
+            toggleSidebar,
+            width,
+        } = this.props;
         const muiTheme = getMuiTheme(theme);
         if (!prefixedStyles.main) {
             // do this once because user agent never changes
@@ -78,10 +82,10 @@ class Layout extends Component {
         return (
             <MuiThemeProvider muiTheme={muiTheme}>
                 <div style={prefixedStyles.main}>
-                    { width !== 1 && <AppBar title={title} onLeftIconButtonTouchTap={this.toggleSidebar} />}
+                    { width !== 1 && <AppBar title={title} onLeftIconButtonTouchTap={toggleSidebar} />}
                     <div className="body" style={width === 1 ? prefixedStyles.bodySmall : prefixedStyles.body}>
                         <div style={width === 1 ? prefixedStyles.contentSmall : prefixedStyles.content}>{children}</div>
-                        <Menu resources={route.resources} logout={logout} open={sidebarOpen} width={width} onRequestChange={this.setSidebarVisibility} />
+                        <Menu resources={route.resources} logout={logout} open={sidebarOpen} width={width} />
                     </div>
                     <Notification />
                     {isLoading && <CircularProgress
@@ -101,7 +105,10 @@ Layout.propTypes = {
     children: PropTypes.node,
     logout: PropTypes.element,
     route: PropTypes.object.isRequired,
+    setSidebarVisibility: PropTypes.func.isRequired,
+    sidebarOpen: PropTypes.bool,
     title: PropTypes.string.isRequired,
+    toggleSidebar: PropTypes.func.isRequired,
     theme: PropTypes.object.isRequired,
     width: PropTypes.number,
 };
@@ -111,12 +118,18 @@ Layout.defaultProps = {
 };
 
 function mapStateToProps(state) {
-    return { isLoading: state.admin.loading > 0 };
+    return {
+        isLoading: state.admin.loading > 0,
+        sidebarOpen: state.admin.ui.sidebarOpen,
+    };
 }
 
 const enhance = compose(
     withWidth(),
-    connect(mapStateToProps),
+    connect(mapStateToProps, {
+        toggleSidebar: toggleSidebarAction,
+        setSidebarVisibility: setSidebarVisibilityAction,
+    }),
 );
 
 export default enhance(Layout);
