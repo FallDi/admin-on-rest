@@ -2,8 +2,10 @@ import React, { Component, PropTypes } from 'react';
 import { connect } from 'react-redux';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
-import autoprefixer from 'material-ui/utils/autoprefixer'
-import CircularProgress from 'material-ui/CircularProgress';;
+import autoprefixer from 'material-ui/utils/autoprefixer';
+import withWidth from 'material-ui/utils/withWidth';
+import CircularProgress from 'material-ui/CircularProgress';
+import compose from 'recompose/compose';
 import injectTapEventPlugin from 'react-tap-event-plugin';
 import AppBar from './AppBar';
 import Notification from './Notification';
@@ -24,7 +26,14 @@ const styles = {
         flex: 1,
         overflow: 'hidden',
     },
+    bodySmall: {
+        backgroundColor: '#fff',
+    },
     content: {
+        flex: 1,
+        padding: '2em',
+    },
+    contentSmall: {
         flex: 1,
     },
     loader: {
@@ -43,12 +52,20 @@ class Layout extends Component {
         sidebarOpen: true,
     };
 
+    componentWillMount() {
+        this.setState({ sidebarOpen: this.props.width !== 1 });
+    }
+
     toggleSidebar = () => {
         this.setState({ sidebarOpen: !this.state.sidebarOpen });
     }
 
+    setSidebarVisibility = (open) => {
+        this.setState({ sidebarOpen: open });
+    }
+
     render() {
-        const { isLoading, children, route, title, theme, logout } = this.props;
+        const { isLoading, children, route, title, theme, logout, width } = this.props;
         const { sidebarOpen } = this.state;
         const muiTheme = getMuiTheme(theme);
         if (!prefixedStyles.main) {
@@ -62,9 +79,9 @@ class Layout extends Component {
             <MuiThemeProvider muiTheme={muiTheme}>
                 <div style={prefixedStyles.main}>
                     <AppBar title={title} onLeftIconButtonTouchTap={this.toggleSidebar} />
-                    <div className="body" style={prefixedStyles.body}>
-                        <div style={prefixedStyles.content}>{children}</div>
-                        <Menu resources={route.resources} logout={logout} open={sidebarOpen} />
+                    <div className="body" style={width === 1 ? prefixedStyles.bodySmall : prefixedStyles.body}>
+                        <div style={width === 1 ? prefixedStyles.contentSmall : prefixedStyles.content}>{children}</div>
+                        <Menu resources={route.resources} logout={logout} open={sidebarOpen} width={width} onRequestChange={this.setSidebarVisibility} />
                     </div>
                     <Notification />
                     {isLoading && <CircularProgress
@@ -77,7 +94,7 @@ class Layout extends Component {
             </MuiThemeProvider>
         );
     }
-};
+}
 
 Layout.propTypes = {
     isLoading: PropTypes.bool.isRequired,
@@ -86,6 +103,7 @@ Layout.propTypes = {
     route: PropTypes.object.isRequired,
     title: PropTypes.string.isRequired,
     theme: PropTypes.object.isRequired,
+    width: PropTypes.number,
 };
 
 Layout.defaultProps = {
@@ -96,6 +114,9 @@ function mapStateToProps(state) {
     return { isLoading: state.admin.loading > 0 };
 }
 
-export default connect(
-  mapStateToProps,
-)(Layout);
+const enhance = compose(
+    withWidth(),
+    connect(mapStateToProps),
+);
+
+export default enhance(Layout);
